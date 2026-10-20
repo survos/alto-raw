@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "survos-alto-raw"
+version = "0.1.0"
+description = "Verified ALTO XML capture and deterministic JSONL issue packs"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["survos_alto_raw*"]

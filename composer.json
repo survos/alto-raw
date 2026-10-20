@@ -1,0 +1,30 @@
+{
+    "name": "survos/alto-raw",
+    "description": "Penn ALTO raw conversion foundations with verified original XML preservation",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.5",
+        "ext-dom": "*",
+        "ext-hash": "*",
+        "ext-libxml": "*",
+        "survos/bagit": "^2.43.9",
+        "ext-zlib": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Survos\\AltoRaw\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Survos\\AltoRaw\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}

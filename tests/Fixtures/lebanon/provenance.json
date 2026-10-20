@@ -1,0 +1,23 @@
+{
+  "issue": "sn83032227-1857-06-24-ed-1",
+  "batch": "batch_pst_aura_ver01",
+  "manifestSha256": "45b770ec3857de209ca2252198ac88ac97d18e53d7cf07b62cd72d1d533ae862",
+  "source": "https://panewsarchive.psu.edu/lccn/sn83032227/1857-06-24/ed-1.json",
+  "referenceMemberSha256": "d181609c56673ade70497eeceb6352ebdcdc70f2cbe96453bac580b16a6d170b",
+  "documents": [
+    {
+      "name": "alto",
+      "path": "data/sn83032227/000001966/1857062401/0001.xml",
+      "md5": "b253b9b9bb901bb415204ad65381283b",
+      "sha256": "5e9c79767c36cda6a58438c0191cf0dca8c4ace7c1c788864127aec874f9dd11",
+      "bytes": 1663177
+    },
+    {
+      "name": "mets",
+      "path": "data/sn83032227/000001966/1857062401/1857062401.xml",
+      "md5": "c447fb712deffc0950119ae435f3d739",
+      "sha256": "b302a1522b38fbe674e8ba5aac5ec60e08f29e7df2cfee4485192a6dc0e11ba2",
+      "bytes": 8670
+    }
+  ]
+}
