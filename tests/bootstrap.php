@@ -10,7 +10,7 @@ foreach ([dirname(__DIR__).'/vendor/autoload.php', dirname(__DIR__, 2).'/bagit/v
 }
 
 spl_autoload_register(static function (string $class): void {
-    foreach (['Survos\\AltoRaw\\' => dirname(__DIR__).'/src/', 'Survos\\BagIt\\' => dirname(__DIR__, 2).'/bagit/src/'] as $prefix => $directory) {
+    foreach (['Survos\\AltoRaw\\' => dirname(__DIR__).'/src/', 'Survos\\DataContracts\\' => dirname(__DIR__, 2).'/data-contracts/src/', 'Survos\\BagIt\\' => dirname(__DIR__, 2).'/bagit/src/'] as $prefix => $directory) {
         if (str_starts_with($class, $prefix)) {
             $file = $directory.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
             if (is_file($file)) {

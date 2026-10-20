@@ -1,6 +1,6 @@
 {
     "name": "survos/alto-raw",
-    "description": "Penn ALTO raw conversion foundations with verified original XML preservation",
+    "description": "Penn newspaper conversion with Python-compatible raw records and verified original METS/ALTO BagIt preservation",
     "type": "library",
     "license": "MIT",
     "require": {
@@ -9,7 +9,9 @@
         "ext-hash": "*",
         "ext-libxml": "*",
         "survos/bagit": "^2.43.9",
-        "ext-zlib": "*"
+        "ext-zlib": "*",
+        "survos/data-contracts": "^2.0",
+        "ext-phar": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^13.0"

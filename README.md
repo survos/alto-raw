@@ -1,87 +1,89 @@
 # ALTO raw
 
-`survos/alto-raw` is a PHP library scaffold for Penn newspaper capture conversion.
-It requires PHP 8.5 and `survos/bagit`; it has no Symfony or Harvest runtime dependency.
+`survos/alto-raw` converts cached Penn newspaper sources to PHP-generated v2 issue
+packs and Harvest raw JSONL, preserving original METS and ALTO in a verified BagIt.
+Requires PHP 8.5, DOM, Phar, zlib, `survos/bagit` and `survos/data-contracts`.
+No Symfony, Harvest, Python or HTTP runtime is required.
 
-## First release: foundations, not a complete Penn converter
-
-Implemented and tested against cached Lebanon source documents:
-
-- `XmlTree::parse()` produces the existing Python v2 ALTO/METS tree representation.
-- `SourceXml` verifies a selected XML file against its Penn manifest MD5 and returns
-  an exact-byte snapshot (spilling to temporary disk above 2 MiB).
-- `OriginalXmlSource` supplies selected originals to the shared BagItTools wrapper.
-  Originals are stored under `data/originals/<Penn payload path>` in the new bag.
-- Original XML hashes, original bytes in a verified BagIt, and decoded tree parity
-  are tested using real Lebanon ALTO and METS fixtures, not regenerated expectations.
-
-The complete Penn capture inventory, manifest/tagmanifest verification, canvas matching,
-geometry summaries, deterministic gzip pack writer, catalog/completion receipts and
-full conversion CLI are **not implemented in PHP yet**. No runnable placeholder
-pretends to complete those stages. This package is being published first so it can
-be registered in the package catalog before installation and monolink in Depot.
-
-## Preserve originals
+## Convert and preserve
 
 ```php
-use Survos\AltoRaw\OriginalXmlSource;
-use Survos\AltoRaw\SourceXml;
-use Survos\BagIt\BagIt;
+use Survos\AltoRaw\PennConverter;
+use Survos\AltoRaw\BagArchive;
 
-// Paths/checksums come from the caller's verified Penn payload manifest.
-$source = new OriginalXmlSource([
-    new SourceXml('data/sn83032227/000001966/1857062401/0001.xml', $altoFile, $altoMd5),
-    new SourceXml('data/sn83032227/000001966/1857062401/1857062401.xml', $metsFile, $metsMd5),
-]);
-(new BagIt())->createFrom($source, $newBagDirectory, [
-    'Source-Organization' => 'Penn State University Libraries',
-]);
+$converter = new PennConverter();
+$receipt = $converter->convert(
+    $capture,
+    'batch_pst_aura_ver01',
+    'sn83032227',
+    $newOutputDirectory,
+    // Omit the selection for the whole title:
+    ['sn83032227-1857-06-24-ed-1'],
+);
+$converter->createBag($newOutputDirectory, 'batch_pst_aura_ver01', $newBagDirectory);
+(new BagArchive())->pack($newBagDirectory, $newTarFile);
 ```
 
-The caller selects complete source documents and must authenticate the manifest
-chain and issue inventory before using these adapters. This API verifies the
-selected files, not all of the upstream bag or referenced JP2s. BagIt creates its
-own SHA-256 manifests and publishes only after validation; it refuses overwrite.
-Originals remain byte-for-byte intact, including comments, tails and formatting.
+The capture layout matches the Penn capture produced by Harvest and Depot:
+`title.json`, `<issue>/issue.json`, and
+`batches/<batch>/{bagit.txt,bag-info.txt,manifest-md5.txt,tagmanifest-md5.txt,data/...}`.
+Each issue's payload directory includes METS, ALTO and `seq-N.json` canvases.
+Optional `<issue>/rights.json` or the previous `complete.json` carries recorded
+rights into the raw document; the converter does not invent a rights statement.
+JP2s are referenced but need not be present for offline conversion.
 
-The compatible JSON tree is deliberately lossy: formatting whitespace, tail text,
-comments, processing instructions and namespace prefix spelling are not retained.
-DTD inputs are rejected and external entity expansion is not enabled. Never use
-this tree to reconstruct an archival original.
+The converter checks the tagmanifest chain, selects issues from manifest JP2
+identities, verifies METS/ALTO MD5s, matches each canvas to one unique image, and
+writes one gzip member per issue. It retains one issue in memory. A locked,
+temporary directory is verified before atomic publication. A repeat invocation
+verifies the existing output and requires the same manifest revision and selection.
+Use a new destination when changing inputs or scope.
 
-## Lebanon reference fixture
+Output includes:
 
-The pilot is **The Lebanon advertiser**, `sn83032227`, June 24, 1857, edition 1,
-batch `batch_pst_aura_ver01`. `tests/Fixtures/lebanon/provenance.json` records
-source identity, source MD5/SHA-256, manifest revision and the existing Python pack
-member checksum. One complete ALTO page and one complete issue METS are stored
-as gzip fixtures; decompression reproduces the original bytes. The golden trees
-were extracted from the checksum-verified existing pack, not produced by PHP.
-No JP2s or network calls are required for these tests.
+- `originals/<Penn payload path>`: exact source XML bytes, including comments,
+  whitespace, tails and namespace prefixes.
+- `source/`: source manifests, title, issue, canvas and recorded rights evidence.
+- `packs/`, `catalog/`, `batches/`: Python-compatible decoded v2 records, ranged
+  gzip member offsets/checksums and an explicit completion scope.
+- `raw/doc.jsonl.gz`, `meta/dataset.json`: ONI raw import documents and metadata.
+- `checksums.json`: SHA-256 inventory of all generated payloads.
+
+The BagIt wraps these under `data/` with SHA-256 manifests and the dataset external
+identifier. `BagArchive` produces an uncompressed deterministic tar; destinations
+must not exist. This is a preservation bag for the selected XML and derived raw,
+not a claim that every upstream JP2, TIFF and PDF was acquired. Depot verifies the
+JP2s separately before the application workflow advances.
+
+`XmlTree` deliberately follows the lossy Python representation: it omits comments,
+processing instructions, tail text and formatting whitespace. DTD inputs are
+rejected and external entity expansion is disabled. Never reconstruct an archival
+original from this tree. `SourceXml` and `OriginalXmlSource` are also available for
+callers that only need verified exact-byte XML preservation.
+
+## Lebanon parity tests
+
+Fixtures use The Lebanon advertiser, `sn83032227`, June 24, 1857, edition 1,
+`batch_pst_aura_ver01`. The complete four-page issue, both METS files and original
+raw row are checked against the existing Python output. Golden expectations were
+extracted from the previous capture, not generated by PHP. Source provenance is
+recorded in `tests/Fixtures/lebanon/provenance.json`; gzip fixture decompression
+reproduces original XML bytes. Tests need no network or images.
 
 ```sh
 composer install
 composer test
-# From the mono checkout with bagit's test dependencies already installed:
+# From mono with BagIt's test dependencies installed:
 lib/bagit/vendor/bin/phpunit -c lib/alto-raw/phpunit.xml.dist
 ```
 
-## Next phase after package registration
+Tests cover decoded pack/raw parity, original bytes, deterministic output,
+BagIt/tar verification, retries, corruption and duplicate canvas identities.
+The Python implementation under `survos_alto_raw/` remains an unchanged reference.
+Its archive module is also the frozen LOC implementation. This PHP implementation
+does not change or restart the LOC fleet.
 
-1. Implement verified Penn inventory and conversion around these foundations.
-   Preserve METS/ALTO, source manifests and provenance beside the derived packs in
-   the raw BagIt. Add issue-wide parity tests for canvas identity, geometry, missing
-   payloads, repeat runs, failure publication and ranged gzip member decoding.
-2. Require the published package in Depot, then use the existing `monolink` workflow.
-   Depot owns HTTP inventory, local OWC reuse, missing downloads, JP2 checksum
-   verification, workflow/Messenger state, S3 publication and Harvest request/ack.
-3. Retrieve folio layout and resolve Penn image identities to verified OWC JP2s for
-   local rend generation without downloading them again. M6 needs Depot, not the
-   Harvest application installed.
-
-Do not port, deploy or restart the active LOC fleet as part of this migration.
-The existing Python package under `survos_alto_raw/` is retained unchanged as a
-reference implementation; PHP does not invoke it. Its archive module is the frozen
-LOC implementation, and `penn.py` can still be run separately by Python users.
-The Python README previously called the tree lossless; the limitations above apply
-to that representation too. Python tests: `PYTHONPATH=. python3 -m unittest discover -s tests`.
+Depot supplies the application command `penn:run`: inventory, local reuse/download,
+convert, bag, immutable S3 upload, authenticated Harvest workflow request, fresh
+folio retrieval and local rend. Its separate `penn_pipeline` queue and `run.json`
+checkpoints make application retries independent of conversion library internals.
