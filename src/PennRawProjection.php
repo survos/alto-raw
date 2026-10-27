@@ -42,7 +42,7 @@ final class PennRawProjection
         if (isset($header['source']['license'])) {
             $doc[ItemField::RIGHTS] = $header['source']['license'];
         }
-        $doc[PennFields::PROVENANCE] = ['batch' => $header['batch'], 'manifestSha256' => $header['manifestSha256'], 'checksumAlgorithm' => 'md5', 'scope' => 'selected issue METS and ALTO; JP2 references only; not the entire bag'];
+        $doc[PennFields::PROVENANCE] = ['batch' => $header['batch'], 'manifestSha256' => $header['manifestSha256'], 'checksumAlgorithm' => 'md5', 'scope' => PennFields::SCOPE];
 
         return $doc;
     }
@@ -58,6 +58,24 @@ final class PennRawProjection
         }
 
         return ['dataset' => ['datasetKey' => 'oni/pennsylvania-'.$done['lccn'], 'aggregator' => 'oni', 'sourceId' => 'pennsylvania-'.$done['lccn'], 'label' => $label, 'description' => sprintf('Pennsylvania Newspaper Archive: %d captured of %d inventoried issues.', $done['issues'], count($inventoried)), 'provider' => ['uri' => self::BASE.'/'], 'locale' => ['default' => 'en', 'targets' => []], 'source' => ['origin' => 'oni_json', 'include' => ['doc.jsonl.gz']], 'extras' => $extras, 'tags' => ['news', ContentType::NEWSPAPER, 'oni', 'pennsylvania']]];
+    }
+
+    /**
+     * The issue an ONI issue JSON URL names.
+     *
+     * @return array{lccn: string, date: string, edition: int, id: string}
+     */
+    public static function identity(string $url): array
+    {
+        if (!preg_match('~/lccn/([a-z0-9]+)/(\d{4}-\d{2}-\d{2})/ed-([1-9][0-9]*)\.json$~D', $url, $m)) {
+            throw new \UnexpectedValueException('Invalid ONI issue URL: '.$url);
+        }
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $m[2]);
+        if (!$date || $date->format('Y-m-d') !== $m[2]) {
+            throw new \UnexpectedValueException('Invalid issue date.');
+        }
+
+        return ['lccn' => $m[1], 'date' => $m[2], 'edition' => (int) $m[3], 'id' => $m[1].'-'.$m[2].'-ed-'.$m[3]];
     }
 
     public static function url(string $url): string

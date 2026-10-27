@@ -10,6 +10,8 @@ final class PennFields
     public const ASSETS = 'pageAssets';
     public const ALTO_TREE = 'altoTree';
     public const PROVENANCE = 'bagProvenance';
+    /** What a Penn capture covers; stated once in every provenance record. */
+    public const SCOPE = 'selected issue METS and ALTO; JP2 references only; not the entire bag';
     public const LCCN = 'lccn';
     public const EDITION = 'edition';
     public const PUBLICATION_TITLE = 'publicationTitle';

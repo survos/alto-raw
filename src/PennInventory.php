@@ -6,7 +6,6 @@ namespace Survos\AltoRaw;
 
 use Survos\BagIt\Filesystem;
 use Survos\BagIt\IntegrityException;
-use Survos\BagIt\Manifest;
 
 /** Verified, title-scoped inventory. A manifest is not evidence that JP2s are local. */
 final readonly class PennInventory
@@ -16,20 +15,20 @@ final readonly class PennInventory
     public array $checksums;
     public array $issues;
 
-    public function __construct(public string $capture, public string $batch, public string $lccn)
+    /** @var array<string, string> tag files accepted although their checksum differs from the tagmanifest ($strict false) */
+    public array $tagMismatches;
+
+    /** @param bool $strict see {@see PennTags::verify()}: false tolerates Penn's rewritten bag-info.txt and records it */
+    public function __construct(public string $capture, public string $batch, public string $lccn, bool $strict = true)
     {
         if (!preg_match('/^batch_[A-Za-z0-9_]+_ver\d+$/D', $batch) || !preg_match('/^sn\d+$/D', $lccn)) {
             throw new \InvalidArgumentException('Invalid Penn batch or LCCN.');
         }
         $this->bag = rtrim($capture, '/').'/batches/'.$batch;
-        $tags = Manifest::read($this->file('tagmanifest-md5.txt'), 'md5');
-        foreach (['bagit.txt', 'bag-info.txt', 'manifest-md5.txt'] as $path) {
-            if (!isset($tags[$path]) || !hash_equals($tags[$path], hash_file('md5', $this->file($path)))) {
-                throw new IntegrityException('Penn tag checksum mismatch: '.$path);
-            }
-        }
-        $this->checksums = Manifest::read($this->file('manifest-md5.txt'), 'md5');
-        $this->revision = hash_file('sha256', $this->file('manifest-md5.txt'));
+        $tags = PennTags::verify(fn (string $name): string => file_get_contents($this->file($name)), $strict);
+        $this->checksums = $tags['checksums'];
+        $this->revision = $tags['revision'];
+        $this->tagMismatches = $tags['mismatches'];
         $issues = [];
         foreach ($this->checksums as $path => $checksum) {
             if (preg_match('~^data/('.preg_quote($lccn, '~').')/[A-Za-z0-9]+/(\d{4})(\d{2})(\d{2})(\d{2})/(\d+)\.jp2$~D', $path, $match)) {
