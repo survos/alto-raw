@@ -14,7 +14,7 @@ final class PennRawProjection
 
     public function document(array $header, array $pages): array
     {
-        if (!preg_match('/^(sn\d+)-(\d{4}-\d{2}-\d{2})-ed-([1-9]\d*)$/D', $header['issue'], $m)) {
+        if (!preg_match('/^((?:sn)?\d+)-(\d{4}-\d{2}-\d{2})-ed-([1-9]\d*)$/D', $header['issue'], $m)) {
             throw new \UnexpectedValueException('Invalid Penn issue identity.');
         }
         $label = $header['title']['label'] ?? $header['title']['name'];

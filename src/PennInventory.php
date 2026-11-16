@@ -21,7 +21,7 @@ final readonly class PennInventory
     /** @param bool $strict see {@see PennTags::verify()}: false tolerates Penn's rewritten bag-info.txt and records it */
     public function __construct(public string $capture, public string $batch, public string $lccn, bool $strict = true)
     {
-        if (!preg_match('/^batch_[A-Za-z0-9_]+_ver\d+$/D', $batch) || !preg_match('/^sn\d+$/D', $lccn)) {
+        if (!preg_match('/^batch_[A-Za-z0-9_]+_ver\d+$/D', $batch) || !preg_match('/^(?:sn)?\d+$/D', $lccn)) {
             throw new \InvalidArgumentException('Invalid Penn batch or LCCN.');
         }
         $this->bag = rtrim($capture, '/').'/batches/'.$batch;
