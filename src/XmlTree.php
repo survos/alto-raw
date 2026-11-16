@@ -9,24 +9,30 @@ final class XmlTree
 {
     public function parse(string $xml): array
     {
+        $root = $this->document($xml)->documentElement;
+        $tree = $this->element($root, $root->namespaceURI);
+        $tree['ns'] = $root->namespaceURI;
+
+        return $tree;
+    }
+
+    /** Shared secure XML loading for the legacy tree and typed ALTO parser. */
+    public function document(string $xml): \DOMDocument
+    {
         $previous = libxml_use_internal_errors(true);
         try {
             $document = new \DOMDocument();
             if (!$document->loadXML($xml, LIBXML_NONET)) {
                 throw new \UnexpectedValueException('Invalid XML.');
             }
-            // Never resolve external entities or accept a DTD in raw capture inputs.
             if (null !== $document->doctype) {
                 throw new \UnexpectedValueException('DTD declarations are not supported.');
             }
-            $root = $document->documentElement;
-            if (null === $root) {
+            if (null === $document->documentElement) {
                 throw new \UnexpectedValueException('Missing XML root.');
             }
-            $tree = $this->element($root, $root->namespaceURI);
-            $tree['ns'] = $root->namespaceURI;
 
-            return $tree;
+            return $document;
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);

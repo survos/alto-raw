@@ -87,3 +87,32 @@ Depot supplies the application command `penn:run`: inventory, local reuse/downlo
 convert, bag, immutable S3 upload, authenticated Harvest workflow request, fresh
 folio retrieval and local rend. Its separate `penn_pipeline` queue and `run.json`
 checkpoints make application retries independent of conversion library internals.
+
+## Typed ALTO contracts
+
+`AltoParser` exposes a framework-independent `Contract\Document` with typed
+`Page`, `Block`, `Line` and `Word` elements. Each has a `NodeIdentity` (document-local
+node ID, parent ID, source order, qualified name and namespace). `sourceId` is the
+original ALTO ID, not the internal node ID. Words link to their text block and line.
+
+```php
+$document = (new \Survos\AltoRaw\AltoParser())->parse($xml);
+foreach ($document->words() as $word) {
+    $box = $word->box();          // source units; fractional values are retained
+    $text = $word->content;      // original transcription
+    $search = $word->searchableText(); // SUBS_CONTENT when present
+}
+```
+
+The parser reuses `XmlTree::document()` for secure XML loading. Existing
+`XmlTree::parse()` output and Penn conversion remain unchanged. The typed parser
+retains all source attributes, including unknown attributes, and ordered generic
+`Element` records for styles, shapes, alternatives, spaces and extensions. Mixed
+text and element order survive; formatting whitespace, comments and processing
+instructions remain archival. A same-named extension element is not an ALTO word.
+
+The original XML is omitted by default; `parse($xml, keepXml: true)` opts in.
+`sourceSha256` always identifies the original bytes. `Document::structure()` is a
+compatibility projection; storage writers should consume the typed elements
+without generating an intermediate tree. Contracts have no Doctrine, DuckDB,
+Symfony, or provider-specific persistence dependencies.
